@@ -1,3 +1,4 @@
+from datetime import datetime
 from datetime import date
 import pyodbc
 import os
@@ -647,6 +648,171 @@ def ver_movimientos(conn):
         )
 
 
+def ver_inventario(conn):
+    cursor = conn.cursor()
+
+    print("\n¿Cómo desea ver el inventario?")
+    print("1) Por producto (Id_producto)")
+    print("2) Por mes y año")
+    print("3) Por año")
+    print("4) Ver todos")
+    opcion = input("Selecciona una opción: ").strip()
+
+    where_clauses = []
+    params = []
+
+    if opcion == "1":
+        raw_id = input("Ingresa el Id_producto: ").strip()
+        if not raw_id.isdigit():
+            print("Id inválido. Debe ser numérico.")
+            return
+
+        id_producto = int(raw_id)
+
+        cursor.execute(
+            "SELECT 1 FROM rob.Producto WHERE Id_producto = ?;", (id_producto,))
+        if cursor.fetchone() is None:
+            print(f"No existe un producto con Id_producto = {id_producto}.")
+            return
+
+        where_clauses.append("c.Id_producto = ?")
+        params.append(id_producto)
+
+    elif opcion == "2":
+        raw_month = input("Ingresa el mes (1-12, ej: 1 o 01): ").strip()
+        if not raw_month.isdigit():
+            print("Mes inválido. Debe ser numérico.")
+            return
+
+        month = int(raw_month)
+        if month < 1 or month > 12:
+            print("Mes inválido. Debe estar entre 1 y 12.")
+            return
+
+        where_clauses.append("MONTH(c.Fecha) = ?")
+        params.append(month)
+
+        raw_anio = input(
+            "Ingresa el año (ej: 2025) para filtrar el mes: ").strip()
+        if not raw_anio.isdigit():
+            print("Año inválido. Debe ser numérico.")
+            return
+
+        anio = int(raw_anio)
+        where_clauses.append("YEAR(c.Fecha) = ?")
+        params.append(anio)
+
+    elif opcion == "3":
+        raw_anio = input("Ingresa el año (ej: 2025): ").strip()
+        if not raw_anio.isdigit():
+            print("Año inválido. Debe ser numérico.")
+            return
+
+        anio = int(raw_anio)
+        where_clauses.append("YEAR(c.Fecha) = ?")
+        params.append(anio)
+
+    elif opcion == "4":
+        pass
+    else:
+        print("Opción inválida.")
+        return
+
+    query = """
+        SELECT
+            c.Fecha,
+            p.Nombre_producto,
+            c.Cantidad
+        FROM rob.Inventario AS c
+        INNER JOIN rob.Producto AS p ON p.Id_producto = c.Id_producto
+    """
+
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+
+    query += " ORDER BY c.Fecha DESC, c.Id_inventario DESC;"
+
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+
+    if not rows:
+        print("\nNo se encontraron inventarios con ese criterio.")
+        return
+
+    print(f"\nMostrando {len(rows)} inventario:\n")
+    for r in rows:
+        print(
+            f"Fecha: {r.Fecha} | "
+            f"Producto: {r.Nombre_producto} | "
+            f"Cant_contada: {r.Cantidad}"
+        )
+
+
+def ingresar_conteo(conn):
+    cursor = conn.cursor()
+
+    raw_id = input("Ingresa el Id_producto a contar: ").strip()
+    if not raw_id.isdigit():
+        print("Id inválido. Debe ser numérico.")
+        return
+    id_producto = int(raw_id)
+
+    cursor.execute("""
+        SELECT Nombre_producto
+        FROM rob.Producto
+        WHERE Id_producto = ?;
+    """, (id_producto,))
+    prod = cursor.fetchone()
+    if prod is None:
+        print(f"No existe un producto con Id_producto = {id_producto}.")
+        return
+
+    raw_cant = input("Ingresa la cantidad contada: ").strip()
+    try:
+        cantidad_contada = int(raw_cant)
+        if cantidad_contada < 0:
+            raise ValueError
+    except ValueError:
+        print("Cantidad inválida. Debe ser un entero >= 0.")
+        return
+
+    query_insert = """
+        INSERT INTO rob.Conteo (Id_producto, Cantidad_contada, Fecha)
+        VALUES (?, ?, SYSDATETIME());
+    """
+
+    try:
+        cursor.execute(query_insert, (id_producto, cantidad_contada))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Error insertando el conteo: {e}")
+        return
+
+    query_select = """
+        SELECT TOP 30
+            c.Fecha,
+            p.Nombre_producto,
+            c.Cantidad_contada
+        FROM rob.Conteo AS c
+        INNER JOIN rob.Producto AS p ON p.Id_producto = c.Id_producto
+        WHERE c.Id_producto = ?;
+    """
+    cursor.execute(query_select, (id_producto,))
+    row = cursor.fetchone()
+
+    if row is None:
+        print("Conteo insertado, pero no se pudo leer con JOIN.")
+        return
+
+    print("\nConteo registrado:\n")
+    print(
+        f"Fecha: {row.Fecha} | "
+        f"Producto: {row.Nombre_producto} | "
+        f"Cantidad_contada: {row.Cantidad_contada}"
+    )
+
+
 def menu_consultas(conn):
     while True:
         print("\n==============================")
@@ -656,7 +822,8 @@ def menu_consultas(conn):
         print("2) Buscar productos por nombre")
         print("3) Buscar productos por Id")
         print("4) Ver ventas por año")
-        print("5) Ver movimientos (filtros)")
+        print("5) Ver movimientos")
+        print("6) Ver inventario")
         print("0) Volver")
         op = input("Selecciona una opción: ").strip()
 
@@ -675,6 +842,9 @@ def menu_consultas(conn):
         elif op == "5":
             ver_movimientos(conn)
             pause()
+        elif op == "6":
+            ver_inventario(conn)
+            pause()
         elif op == "0":
             return
         else:
@@ -688,9 +858,10 @@ def menu_gestion(conn):
         print("==============================")
         print("1) Ingresar producto")
         print("2) Actualizar producto")
-        print("3) Registrar venta")
-        print("4) Registrar movimiento inventario")
-        print("5) Eliminar producto")
+        print("3) Eliminar producto")
+        print("4) Registrar venta")
+        print("5) Registrar movimiento inventario")
+        print("6) Registrar conteo de inventario")
         print("0) Volver")
         op = input("Selecciona una opción: ").strip()
 
@@ -701,13 +872,16 @@ def menu_gestion(conn):
             actualizar_producto(conn)
             pause()
         elif op == "3":
-            ingresar_venta(conn)
+            eliminar_producto(conn)
             pause()
         elif op == "4":
-            ingresar_movimiento(conn)
+            ingresar_venta(conn)
             pause()
         elif op == "5":
-            eliminar_producto(conn)
+            ingresar_movimiento(conn)
+            pause()
+        elif op == "6":
+            ingresar_conteo(conn)
             pause()
         elif op == "0":
             return
