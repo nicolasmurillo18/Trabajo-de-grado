@@ -735,7 +735,7 @@ def main():
             print("        MENÚ PRINCIPAL        ")
             print("==============================")
             print("1) Consultas")
-            print("2) Gestión de datos (CRUD)")
+            print("2) Gestión de datos")
             print("0) Salir")
             opcion = input("Selecciona una opción: ").strip()
 
