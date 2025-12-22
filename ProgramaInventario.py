@@ -1,15 +1,20 @@
 from datetime import date
 import pyodbc
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Carga el .env
 
 # =========================
 # Configuración de conexión
 # =========================
+
 CONN_STR = (
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=sqlceaiotserver.database.windows.net;"
-    "DATABASE=SQLCEAIOTDB;"
-    "UID=ROBOTINV;"
-    "PWD=Inventario2026*;"
+    f"DRIVER={{{os.getenv('DB_DRIVER')}}};"
+    f"SERVER={os.getenv('DB_SERVER')};"
+    f"DATABASE={os.getenv('DB_NAME')};"
+    f"UID={os.getenv('DB_USER')};"
+    f"PWD={os.getenv('DB_PASSWORD')};"
     "Encrypt=yes;"
     "TrustServerCertificate=no;"
     "Connection Timeout=30;"
