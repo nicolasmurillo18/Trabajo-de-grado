@@ -8,9 +8,17 @@ BASE_TOPIC = "robot/sensado"
 
 MAPEO_SENALES = {
     "bateria_estado_carga": (1, 5),   # Pieza 1, métrica 5
-    "bateria_voltaje":      (1, 6),   # Pieza 1, métrica 6
-    "micro3_voltaje":       (3, 4),   # Pieza 3, métrica 4
-    # agregar las demás
+    "bateria_voltaje":      (1, 4),
+    "micro_esclavo_voltaje":       (3, 4),
+    "micro_esclavo_temperatura":       (3, 2),
+    "micro_maestro_voltaje":       (2, 4),
+    "micro_maestro_temperatura":       (2, 2),
+    "micro_maestro_velocidad":       (2, 1),
+    "ruedas_desviacion":       (4, 3),
+    "ultrasonido_distancia":       (6, 6),
+    "ultrasonido_velocidad":       (6, 1),
+    "Lidar_velocidad":       (5, 1),
+    "Lidar_distancia":       (5, 6)
 }
 
 
