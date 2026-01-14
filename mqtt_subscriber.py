@@ -1,44 +1,44 @@
 import json
 import pyodbc
 import paho.mqtt.client as mqtt
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Carga el .env
 
 MQTT_HOST = "localhost"
 MQTT_PORT = 1883
-TOPIC_SUB = "robot/sensado/+/+"
-# robot/sensado/<id_pieza>/<id_metrica>
+TOPIC_SUB = "robot/sensado/+/+"  # robot/sensado/<id_pieza>/<id_metrica>
 
 CONN_STR = (
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=sqlceaiotserver.database.windows.net;"
-    "DATABASE=SQLCEAIOTDB;"
-    "UID=ROBOTINV;"
-    "PWD=Inventario2026*;"
+    f"DRIVER={{{os.getenv('DB_DRIVER')}}};"
+    f"SERVER={os.getenv('DB_SERVER')};"
+    f"DATABASE={os.getenv('DB_NAME')};"
+    f"UID={os.getenv('DB_USER')};"
+    f"PWD={os.getenv('DB_PASSWORD')};"
     "Encrypt=yes;"
     "TrustServerCertificate=no;"
     "Connection Timeout=30;"
 )
 
 
-def get_connection():
-    return pyodbc.connect(CONN_STR)
-
-
 def parse_topic(topic: str):
-    parts = topic.split("/")
-    if len(parts) != 4:
+    secciones = topic.split("/")  # partes del tópico
+    if len(secciones) != 4:
         raise ValueError(f"Tópico inválido: {topic}")
-    _, _, id_pieza, id_metrica = parts
+    _, _, id_pieza, id_metrica = secciones
     return int(id_pieza), int(id_metrica)
 
 
-def parse_value(payload: bytes):
-    text = payload.decode("utf-8").strip()
+def parse_value(valor: bytes):
+    decodificacion = valor.decode("utf-8").strip()
 
-    if text.startswith("{"):
-        obj = json.loads(text)
-        return float(obj["valor"])
+    # La condición para verificar si viene en el formato del publisher
+    if decodificacion.startswith("{"):
+        obj = json.loads(decodificacion)
+        return float(obj["valor"])  # Retorna el valor del publisher
 
-    return float(text.replace(",", "."))
+    return float(decodificacion.replace(",", "."))
 
 
 def insertar_sensado(conn, id_pieza: int, id_metrica: int, valor: float):
@@ -51,7 +51,7 @@ def insertar_sensado(conn, id_pieza: int, id_metrica: int, valor: float):
     conn.commit()
 
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, _userdata, _flags, rc):
     if rc == 0:
         print(f"Conectado a MQTT en {MQTT_HOST}:{MQTT_PORT}")
         client.subscribe(TOPIC_SUB)
@@ -60,22 +60,22 @@ def on_connect(client, userdata, flags, rc):
         print(f"No se pudo conectar. Código: {rc}")
 
 
-def on_message(client, userdata, msg):
+def on_message(client, userdata, mensaje):
     conn = userdata["conn"]
     try:
-        id_pieza, id_metrica = parse_topic(msg.topic)
-        valor = parse_value(msg.payload)
+        id_pieza, id_metrica = parse_topic(mensaje.topic)
+        valor = parse_value(mensaje.payload)
 
         insertar_sensado(conn, id_pieza, id_metrica, valor)
 
-        print(f"[OK] {msg.topic} -> valor={valor}")
+        print(f"[INSERTADO] {mensaje.topic} -> valor={valor}")
     except Exception as e:
         conn.rollback()
-        print(f"[ERROR] {msg.topic} | {e}")
+        print(f"[ERROR] {mensaje.topic} | {e}")
 
 
 def main():
-    conn = get_connection()
+    conn = pyodbc.connect(CONN_STR)
     client = mqtt.Client()
     client.user_data_set({"conn": conn})
 

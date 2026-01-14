@@ -2,21 +2,14 @@ import pyodbc
 from typing import Optional
 
 
-def publicar_inventario(
-    conn: pyodbc.Connection,
-    pid: Optional[str],
-    cantidad: int = 0,
-) -> bool:
+def publicar_inventario(conn: pyodbc.Connection, pid: Optional[str], cantidad: int) -> bool:
     """
     Publica inventario usando el Id_producto.
     Retorna True si se actualizó/inserto algo.
     """
-    if pid is None:
-        return False
 
     try:
         cur = conn.cursor()
-
         cur.execute(
             """
                 INSERT INTO rob.Inventario (Id_producto, Cantidad)
@@ -24,7 +17,6 @@ def publicar_inventario(
                 """,
             (int(pid), cantidad),
         )
-
         conn.commit()
         return True
 

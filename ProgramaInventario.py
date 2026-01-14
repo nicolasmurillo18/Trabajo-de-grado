@@ -21,17 +21,12 @@ CONN_STR = (
     "Connection Timeout=30;"
 )
 
-
-def get_connection():
-    """Crea y retorna una conexión nueva a SQL Server."""
-    return pyodbc.connect(CONN_STR)
-
 # =========================
 # Utilidades de impresión
 # =========================
 
 
-def print_product_row(row):
+def imprimir_producto(row):
     try:
         print(
             f"- Id: {row.Id_producto} | "
@@ -72,7 +67,7 @@ def buscar_por_categoria(conn):
     print(
         f"\nEn la categoria '{categoria}' hay {len(rows)} productos\n")
     for r in rows:
-        print_product_row(r)
+        imprimir_producto(r)
 
 
 def buscar_por_nombre(conn):
@@ -95,7 +90,7 @@ def buscar_por_nombre(conn):
     print(
         f"\nLos productos que contienen el nombre '{nombre}' son: {len(rows)}\n")
     for r in rows:
-        print_product_row(r)
+        imprimir_producto(r)
 
 
 def buscar_por_id(conn):
@@ -118,7 +113,7 @@ def buscar_por_id(conn):
         print(f"No se encontró producto con Id_producto = {id_producto}")
     else:
         print("\nProducto encontrado:\n")
-        print_product_row(row)
+        imprimir_producto(row)
 
 
 def ver_ventas(conn):
@@ -211,6 +206,16 @@ def actualizar_producto(conn):
             return
         nuevo_valor = CATEGORIAS_VALIDAS[raw]
 
+    elif opcion == "4":
+        ESTADOS_VALIDOS = {
+            "0": 0,
+            "1": 1
+        }
+        raw = input("Nuevo estado: ").strip().lower()
+        if raw not in ESTADOS_VALIDOS:
+            print("Estado inválido.")
+            return
+        nuevo_valor = ESTADOS_VALIDOS[raw]
     else:
         nuevo_valor = input("Ingresa el nuevo valor: ").strip()
 
@@ -237,7 +242,7 @@ def actualizar_producto(conn):
         print("No se encontró el producto.")
     else:
         print("\nProducto actualizado correctamente:")
-        print_product_row(row)
+        imprimir_producto(row)
 
 
 def ingresar_producto(conn):
@@ -427,8 +432,6 @@ def ingresar_venta(conn):
             f"Neta: {r.Cantidad_neta} | Sin IVA: {r.Venta_sin_IVA}"
         )
 
-
-# from datetime import date
 
 def ingresar_movimiento(conn):
     cursor = conn.cursor()
@@ -895,7 +898,7 @@ def menu_gestion(conn):
 
 def main():
     try:
-        conn = get_connection()
+        conn = pyodbc.connect(CONN_STR)
     except Exception as e:
         print("Error conectando a la Base de datos")
         print(e)

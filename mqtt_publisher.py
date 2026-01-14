@@ -24,12 +24,11 @@ MAPEO_SENALES = {
 
 def publicar_medicion(signal_name: str, valor: float):
     if signal_name not in MAPEO_SENALES:
-        raise ValueError(
-            f"Señal desconocida: {signal_name}. Debes mapearla en MAPEO_SENALES.")
+        raise ValueError(f"Señal desconocida: {signal_name}")
 
     id_pieza, id_metrica = MAPEO_SENALES[signal_name]
 
-    msg = {
+    valores = {
         "id_pieza": id_pieza,
         "id_metrica": id_metrica,
         "valor": float(valor)
@@ -37,11 +36,11 @@ def publicar_medicion(signal_name: str, valor: float):
     topic = f"{BASE_TOPIC}/{id_pieza}/{id_metrica}"
     publish.single(
         topic,
-        payload=json.dumps(msg),
+        payload=json.dumps(valores),
         hostname=BROKER_HOST,
         port=BROKER_PORT
     )
-    print("Publicado en:", topic, "|", msg)
+    print("Publicado en:", topic, "|", valores)
 
 
 def main():
