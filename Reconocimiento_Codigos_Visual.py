@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import os
 import numpy as np
 
+from inventory_publisher import publicar_inventario
+
 load_dotenv()
 
 # =====================================================
@@ -714,9 +716,9 @@ def zonas_fallback(imagen_bgr) -> List[RoiCandidate]:
     """
     H, W = imagen_bgr.shape[:2]
     zonas = [
-        ("Z_top_right", imagen_bgr[int(0.00 * H)         :int(0.55 * H), int(0.40 * W):int(1.00 * W)]),
-        ("Z_left_mid",  imagen_bgr[int(0.20 * H)         :int(0.80 * H), int(0.00 * W):int(0.60 * W)]),
-        ("Z_mid",       imagen_bgr[int(0.20 * H)         :int(0.75 * H), int(0.20 * W):int(0.85 * W)]),
+        ("Z_top_right", imagen_bgr[int(0.00 * H):int(0.55 * H), int(0.40 * W):int(1.00 * W)]),
+        ("Z_left_mid",  imagen_bgr[int(0.20 * H):int(0.80 * H), int(0.00 * W):int(0.60 * W)]),
+        ("Z_mid",       imagen_bgr[int(0.20 * H):int(0.75 * H), int(0.20 * W):int(0.85 * W)]),
         ("Z_center",        imagen_bgr[int(
             0.20 * H):int(0.80 * H), int(0.10 * W):int(0.90 * W)]),
         ("Z_center_lower",  imagen_bgr[int(
@@ -1025,7 +1027,7 @@ def decode_image_bytes_to_bgr(image_bytes: bytes) -> Optional[Any]:
 # TEST
 # =====================================================
 if __name__ == "__main__":
-    ruta_imagen = r"C:\Users\nicol\Downloads\Prueba_etiqueta51.jpeg"  # 33 42 45 50
+    ruta_imagen = r"C:\Users\nicol\Downloads\Prueba_etiqueta30.jpeg"  # 33 42 45 50
     imagen = cv2.imread(ruta_imagen)
 
     CONN_STR = (
@@ -1042,5 +1044,8 @@ if __name__ == "__main__":
 
     pid, info = obtener_id_producto(imagen, conn=conn)
     print("Resultado:", pid, "|", info)
+    cantidad = 3
+    insertado = publicar_inventario(conn, pid, cantidad)
+    print("Inventario actualizado:", insertado)
 
     conn.close()
